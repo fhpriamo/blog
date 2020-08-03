@@ -1,9 +1,8 @@
-baseURL = "fhpriamo.github.io/blog/"
+baseURL = "https://fhpriamo.github.io/blog/"
 languageCode = "en-us"
 title = "Ugly code uglier coder"
 theme = "ezhil"
 publishDir = "docs"
-
 copyright = "© Copyright 2020 Fábio H. Priamo"
 
 # Enable syntax highlighting.
