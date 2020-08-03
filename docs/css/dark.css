@@ -62,9 +62,11 @@ a:hover {
 	border-color: #333;
 }
 
+
 .nav li a {
 	color: #ccc;
 	font-weight: 700;
+	text-transform: uppercase;
 }
 
 .highlight {

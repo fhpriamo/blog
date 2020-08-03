@@ -258,7 +258,11 @@ code {
     margin-left: 0;
     margin-right: 10px;
     margin-top: 10px;
-    text-transform: capitalize;
+    text-transform: uppercase;
+}
+
+.header nav ul.flat li:first-child {
+    list-style: square;
 }
 
 .header .site-description {
