@@ -6,7 +6,7 @@
     <description>Recent content on Ugly code uglier coder</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <copyright>© Copyright 2020 Fábio H. Priamo</copyright>
+    <copyright>© Copyright 2020 - Fábio H. Priamo</copyright>
     <lastBuildDate>Mon, 03 Aug 2020 03:05:09 -0300</lastBuildDate>
     
 	<atom:link href="https://fhpriamo.github.io/blog/index.xml" rel="self" type="application/rss+xml" />
@@ -32,6 +32,17 @@ NOTE: for the sake of simplicity, I have kept things to a very minimum (most of 
       <description>Hi, I&amp;rsquo;m Fábio. And this is my blog on (good and bad) software development.
 I&amp;rsquo;m a brazilian software developer based on Juiz de Fora, Brazil, where I mostly engineer software for an emerging fintech called SouFan.
 I believe that knowledge is empowering (and often life-changing), and that good knowledge should be at everyone&amp;rsquo;s reach. The (hopefully good) knowledge shared in this blog is a humble effort to contribute towards that goal.</description>
+    </item>
+    
+    <item>
+      <title>Discussion</title>
+      <link>https://fhpriamo.github.io/blog/discussion/</link>
+      <pubDate>Sun, 02 Aug 2020 20:33:19 -0300</pubDate>
+      
+      <guid>https://fhpriamo.github.io/blog/discussion/</guid>
+      <description>If you&amp;rsquo;d like to report any errors in code or errors in writing (I&amp;rsquo;m sure there are lots of them), make suggestions of any kind, ask for permission to use some content, or even just reach out and say &amp;ldquo;Hi!&amp;rdquo;, please, open an issue at Github.
+If you&amp;rsquo;d like to contribute directly with some content, PRs are also welcome.
+Thanks!</description>
     </item>
     
   </channel>
