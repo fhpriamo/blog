@@ -2,49 +2,49 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Tags on Ugly code uglier coder</title>
-    <link>fhpriamo.github.io/blog/tags/</link>
+    <link>https://fhpriamo.github.io/blog/tags/</link>
     <description>Recent content in Tags on Ugly code uglier coder</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>© Copyright 2020 Fábio H. Priamo</copyright>
     <lastBuildDate>Sun, 18 Mar 2018 12:13:32 +0530</lastBuildDate>
     
-	<atom:link href="fhpriamo.github.io/blog/tags/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://fhpriamo.github.io/blog/tags/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Procrastinating</title>
-      <link>fhpriamo.github.io/blog/tags/procrastinating/</link>
+      <link>https://fhpriamo.github.io/blog/tags/procrastinating/</link>
       <pubDate>Sun, 18 Mar 2018 12:13:32 +0530</pubDate>
       
-      <guid>fhpriamo.github.io/blog/tags/procrastinating/</guid>
+      <guid>https://fhpriamo.github.io/blog/tags/procrastinating/</guid>
       <description></description>
     </item>
     
     <item>
       <title>Space</title>
-      <link>fhpriamo.github.io/blog/tags/space/</link>
+      <link>https://fhpriamo.github.io/blog/tags/space/</link>
       <pubDate>Sun, 18 Mar 2018 12:13:30 +0530</pubDate>
       
-      <guid>fhpriamo.github.io/blog/tags/space/</guid>
+      <guid>https://fhpriamo.github.io/blog/tags/space/</guid>
       <description></description>
     </item>
     
     <item>
       <title>Primer</title>
-      <link>fhpriamo.github.io/blog/tags/primer/</link>
+      <link>https://fhpriamo.github.io/blog/tags/primer/</link>
       <pubDate>Sun, 18 Mar 2018 02:01:58 +0530</pubDate>
       
-      <guid>fhpriamo.github.io/blog/tags/primer/</guid>
+      <guid>https://fhpriamo.github.io/blog/tags/primer/</guid>
       <description></description>
     </item>
     
     <item>
       <title>todo</title>
-      <link>fhpriamo.github.io/blog/tags/todo/</link>
+      <link>https://fhpriamo.github.io/blog/tags/todo/</link>
       <pubDate>Sun, 18 Mar 2018 02:01:58 +0530</pubDate>
       
-      <guid>fhpriamo.github.io/blog/tags/todo/</guid>
+      <guid>https://fhpriamo.github.io/blog/tags/todo/</guid>
       <description></description>
     </item>
     
