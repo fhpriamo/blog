@@ -1,0 +1,88 @@
+body {
+	color: #ccc;
+	background-color: #222;
+}
+
+::-moz-selection {
+    background: #666;
+    text-shadow: none
+}
+
+::selection {
+    background: #666;
+    text-shadow: none
+}
+
+hr {
+    border-color: #333;
+}
+
+
+h1,h2,h3,h4,h5,h6 {
+	color: #40e0d0;
+	/* color: #e1275f; */
+	font-weight: 500;
+}
+
+/* .site-description h2 {
+	color: #e1275f;
+} */
+
+h1.site-title a {
+	color: #eee;
+}
+
+a,a:hover {
+	color: #40e0d0;;
+	text-decoration: none;
+}
+
+.site-description a,
+.site-description a:hover {
+	color: #e1275f;
+	text-decoration: underline;
+}
+
+a:hover {
+	opacity: 0.8;
+}
+
+.post-tags .tags a {
+  border: 1px solid #666;
+	color: #666;
+}
+
+.site-title a {
+	color: #ccc;
+	text-decoration: none !important;
+}
+
+.header nav,
+.footer {
+	border-color: #333;
+}
+
+.nav li a {
+	color: #ccc;
+	font-weight: 700;
+}
+
+.highlight {
+	background-color: #262626;
+	
+	/* border: 1px solid #333; */
+	border-radius: 5px;
+}
+
+table th {
+	background-color: #333;
+}
+
+table th, table td {
+    padding: 10px 20px;
+    border: 1px solid #666;
+}
+
+pre code {
+  display: inline-block;
+}

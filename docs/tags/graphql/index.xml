@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>GraphQL on Ugly code uglier coder</title>
+    <link>https://fhpriamo.github.io/blog/tags/graphql/</link>
+    <description>Recent content in GraphQL on Ugly code uglier coder</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© Copyright 2020 Fábio H. Priamo</copyright>
+    <lastBuildDate>Mon, 03 Aug 2020 03:05:09 -0300</lastBuildDate>
+    
+	<atom:link href="https://fhpriamo.github.io/blog/tags/graphql/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Painless GraphQL File Uploads With Apollo Server to Amazon S3 and Local Filesystem</title>
+      <link>https://fhpriamo.github.io/blog/posts/painless-graphql-file-uploads-with-apollo-server-to-amazon-s3-and-local-filesystem/</link>
+      <pubDate>Mon, 03 Aug 2020 03:05:09 -0300</pubDate>
+      
+      <guid>https://fhpriamo.github.io/blog/posts/painless-graphql-file-uploads-with-apollo-server-to-amazon-s3-and-local-filesystem/</guid>
+      <description>This tutorial-like article will demonstrate how to handle file uploads on Apollo Server and stream them to Amazon S3 or, optionally (but not preferably), to your server&amp;rsquo;s filesystem.
+Before we go on, I assume you have basic familiarity with S3 and already have read on this subject on the Apollo docs.
+NOTE: for the sake of simplicity, I have kept things to a very minimum (most of the time).</description>
+    </item>
+    
+  </channel>
+</rss>

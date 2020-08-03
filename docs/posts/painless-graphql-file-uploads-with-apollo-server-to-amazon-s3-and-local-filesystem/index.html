@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Painless GraphQL File Uploads With Apollo Server to Amazon S3 and Local Filesystem - Ugly code uglier coder</title><link rel="icon" type="image/png" href=icons/myicon.png /><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta property="og:title" content="Painless GraphQL File Uploads With Apollo Server to Amazon S3 and Local Filesystem" />
+<meta property="og:description" content="This tutorial-like article will demonstrate how to handle file uploads on Apollo Server and stream them to Amazon S3 or, optionally (but not preferably), to your server&#39;s filesystem." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://fhpriamo.github.io/blog/posts/painless-graphql-file-uploads-with-apollo-server-to-amazon-s3-and-local-filesystem/" />
+<meta property="article:published_time" content="2020-08-03T03:05:09-03:00" />
+<meta property="article:modified_time" content="2020-08-03T03:05:09-03:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Painless GraphQL File Uploads With Apollo Server to Amazon S3 and Local Filesystem"/>
+<meta name="twitter:description" content="This tutorial-like article will demonstrate how to handle file uploads on Apollo Server and stream them to Amazon S3 or, optionally (but not preferably), to your server&#39;s filesystem."/>
+<link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,300italic,400italic|Raleway:200,300" rel="stylesheet">
+
+	<link rel="stylesheet" type="text/css" media="screen" href="https://fhpriamo.github.io/blog/css/normalize.css" />
+	<link rel="stylesheet" type="text/css" media="screen" href="https://fhpriamo.github.io/blog/css/main.css" />
+	<link rel="stylesheet" type="text/css" href="https://fhpriamo.github.io/blog/css/custom.css" />
+	<link rel="stylesheet" type="text/css" href="https://fhpriamo.github.io/blog/css/dark.css"  />
+	<link rel="stylesheet" type="text/css" href="https://fhpriamo.github.io/blog/css/custom-dark.css"  />
+
+	<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+	<script src="https://fhpriamo.github.io/blog/js/main.js"></script>
+	<script src="https://fhpriamo.github.io/blog/js/abc.js"></script>
+	<script src="https://fhpriamo.github.io/blog/js/xyz.js"></script>
+	<script src="https://code.jquery.com/jquery-3.4.1.js"></script>
+</head>
+
+<body>
+	<div class="container wrapper post">
+		<div class="header">
+	<base href="https://fhpriamo.github.io/blog/">
+	<h1 class="site-title"><a href="https://fhpriamo.github.io/blog/">Ugly code uglier coder</a></h1>
+	<div class="site-description"><h2>Often misleading thougths on software development</h2><nav class="nav social">
+			<ul class="flat"><a href="https://github.com/fhpriamo" title="Github"><i data-feather="github"></i></a><a href="https://gitlab.com/fhpriamo" title="Gitlab"><i data-feather="gitlab"></i></a><a href="https://dev.to/fhpriamo" title="Dev.to"><i data-feather="external-link"></i></a></ul>
+		</nav>
+	</div>
+
+	<nav class="nav">
+		<ul class="flat">
+			
+			<li>
+				<a href="/blog/">Home</a>
+			</li>
+			
+			<li>
+				<a href="/blog/posts">All posts</a>
+			</li>
+			
+			<li>
+				<a href="/blog/about">About</a>
+			</li>
+			
+		</ul>
+	</nav>
+</div>
+
+
+		<div class="post-header">
+			<h1 class="title">Painless GraphQL File Uploads With Apollo Server to Amazon S3 and Local Filesystem</h1>
+			<div class="meta">Posted at &mdash; Aug 3, 2020</div>
+		</div>
+
+		<div class="markdown">
+			<p>This tutorial-like article will demonstrate how to handle file uploads on Apollo Server and stream them to Amazon S3 or, optionally (but not preferably), to your server&rsquo;s filesystem.</p>
+<p>Before we go on, I assume you have basic familiarity with S3 and already have read on <a href="https://www.apollographql.com/docs/apollo-server/data/file-uploads/">this subject on the Apollo docs</a>.</p>
+<p><strong>NOTE</strong>: for the sake of simplicity, I have kept things to a very minimum (most of the time). You are encouraged to extract from this article what is most relevant to your project and adapt it the way you see fit.</p>
+<h2 id="a-walk-through-the-file-structure">A walk through the file structure</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">├── .env
+├── tmp/
+|
+├── bin/
+│   │
+│   └── upload-avatar.sh
+|
+└── src/
+    │
+    ├── config.js
+    ├── uploaders.js
+    ├── typedefs.js
+    ├── resolvers.js
+    ├── server.js
+    ├── s3.js
+    ├── index.js
+    |
+    └── lib/
+        │
+        └── gql-uploaders.js
+</code></pre></div><ul>
+<li><strong>.env</strong> - the dotenv file where we&rsquo;ll be keeping our Amazon credentials and other useful environment variables.</li>
+<li><strong>src/lib/gql-uploaders</strong> - our abstractions for the uploader functionality;</li>
+<li><strong>src/config.js</strong> - loads the .env file and exports its variables in an application friendly format.</li>
+<li><strong>src/server.js</strong> - where we&rsquo;ll configure our GraphQL server.</li>
+<li><strong>src/resolvers.js</strong> - GraphQL resolvers.</li>
+<li><strong>src/typedefs.js</strong> - GraphQL type definitions.</li>
+<li><strong>src/index.js</strong> - the application entry point.</li>
+<li><strong>src/uploaders.js</strong> - instances of our uploader abstractions.</li>
+<li><strong>src/s3.js</strong> - exports our configured AWS.S3 instance.</li>
+<li><strong>bin/upload-avatar.sh</strong> - a shell utility to allow us to manually test file uploads.</li>
+<li><strong>tmp/</strong> - a temporary directory to store uploaded files.</li>
+</ul>
+<h2 id="installing-the-dependencies">Installing the dependencies</h2>
+<p>Assuming you already have a package.json in place and have already laid out the file structure, you should now install the following dependencies (I&rsquo;ll use yarn for this, but you sure can do this with the npm command as well):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">yarn add apollo-server graphql dotenv uuid aws-sdk
+</code></pre></div><p>We&rsquo;ll be using <code>apollo-server</code> and <code>graphql</code> to power our graphql server, <code>dotenv</code> to load are environment variables, <code>aws-sdk</code> to handle uploads to Amazon S3 cloud and the <code>uuid</code> module to generate random file names.</p>
+<h2 id="getting-to-know-how-apollo-server-handle-uploads">Getting to know how Apollo Server handle uploads</h2>
+<p>We&rsquo;ll start by coding our graphql type definitions.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/typedefs.js -- revision 1
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">gql</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;apollo-server&#39;</span>);
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">gql</span><span style="color:#e6db74">`
+</span><span style="color:#e6db74">  type File {
+</span><span style="color:#e6db74">    uri: String!
+</span><span style="color:#e6db74">    filename: String!
+</span><span style="color:#e6db74">    mimetype: String!
+</span><span style="color:#e6db74">    encoding: String!
+</span><span style="color:#e6db74">  }
+</span><span style="color:#e6db74">
+</span><span style="color:#e6db74">  type Query {
+</span><span style="color:#e6db74">    uploads: [File]
+</span><span style="color:#e6db74">  }
+</span><span style="color:#e6db74">
+</span><span style="color:#e6db74">  type Mutation {
+</span><span style="color:#e6db74">    uploadAvatar(file: Upload!): File
+</span><span style="color:#e6db74">  }
+</span><span style="color:#e6db74">`</span>;
+
+</code></pre></div><p>As an example, we&rsquo;ll be uploading a user avatar pic. That&rsquo;s what our mutation <code>uploadAvatar</code> will be doing. It will return a <code>File</code> type, which is essentially just an object with the <code>uri</code> for the stored file and some less useful properties. We actually won&rsquo;t be working with the query <code>uploads</code> in this tutorial, but GraphQL demands we have a non-empty root Query type, and that is why we have it there. Just ignore it, please.</p>
+<p>Our <code>uploadAvatar</code> mutation has just one parameter (<code>file</code>) of type <code>Upload</code>. Our resolver will receive a promise that resolves to an object containing the following properties:</p>
+<ul>
+<li><code>filename</code> - a string representing the name of the uploaded file, such as <code>my-pic-at-the-beach-20200120.jpg</code>;</li>
+<li><code>mimetype</code> - a string representing the MIME type of the uploaded file, such as <code>image/jpeg</code>;</li>
+<li><code>encoding</code> - a string representing the file encoding, such as <code>7bit</code>;</li>
+<li><code>createReadStream</code> - a function that initiates a binary read stream (In previous Apollo implementations, we were given a <code>stream</code> object instead of the function to create it).</li>
+</ul>
+<p>If you&rsquo;ve never worked with Node streams before, you can check out <a href="https://nodejs.org/api/stream.html">Node&rsquo;s stream API</a>. But don&rsquo;t be intimidated, as you&rsquo;ll soon see, will make plain simple usage of it.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/resolvers.js -- first revision
+</span><span style="color:#75715e"></span>
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+  <span style="color:#a6e22e">Mutation</span><span style="color:#f92672">:</span> {
+    <span style="color:#a6e22e">uploadAvatar</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">async</span> (<span style="color:#a6e22e">_</span>, { <span style="color:#a6e22e">file</span> }) =&gt; {
+      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">createReadStream</span>, <span style="color:#a6e22e">filename</span>, <span style="color:#a6e22e">mimetype</span>, <span style="color:#a6e22e">encoding</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">await</span> <span style="color:#a6e22e">file</span>;
+
+      <span style="color:#66d9ef">return</span> {
+        <span style="color:#a6e22e">filename</span>,
+        <span style="color:#a6e22e">mimetype</span>,
+        <span style="color:#a6e22e">encoding</span>,
+        <span style="color:#a6e22e">uri</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;http://about:blank&#39;</span>,
+      };
+    },
+  },
+};
+
+</code></pre></div><p>So, in this first take we are simply returning the file attributes (with a placeholder for the uri value). We&rsquo;ll come back to it soon to effectively upload the file.</p>
+<p>Now, let&rsquo;s set up our server:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/server.js -- final revision
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">ApolloServer</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;apollo-server&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">typeDefs</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./typedefs&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">resolvers</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./resolvers&#39;</span>);
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">ApolloServer</span>({
+  <span style="color:#a6e22e">typeDefs</span>,
+  <span style="color:#a6e22e">resolvers</span>,
+});
+
+</code></pre></div><p>And put it to work:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/index.js -- final revision
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">server</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./server&#39;</span>);
+
+<span style="color:#a6e22e">server</span>.<span style="color:#a6e22e">listen</span>().<span style="color:#a6e22e">then</span>(({ <span style="color:#a6e22e">url</span> }) =&gt; {
+  <span style="color:#a6e22e">console</span>.<span style="color:#a6e22e">log</span>(<span style="color:#e6db74">`🚀 Server ready at </span><span style="color:#e6db74">${</span><span style="color:#a6e22e">url</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>);
+});
+
+</code></pre></div><p>Alright. Now it&rsquo;s time to have a taste of it. We&rsquo;ll issue a file upload to our server and see it in action. Since we&rsquo;ll need to test the file upload more than one time, we&rsquo;ll create a shell script to send the request for us (You&rsquo;ll probably need to allow it to execute: <code>chmod +x ./bin/upload-avatar.sh</code>).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#75715e">#!/bin/sh
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e"># bin/upload-avatar.sh -- final revision</span>
+
+curl $1 <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>  -F operations<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;{ &#34;query&#34;: &#34;mutation ($file: Upload!) { uploadAvatar(file: $file) { uri filename mimetype encoding } }&#34;, &#34;variables&#34;: { &#34;file&#34;: null } }&#39;</span> <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>  -F map<span style="color:#f92672">=</span><span style="color:#e6db74">&#39;{ &#34;0&#34;: [&#34;variables.file&#34;] }&#39;</span> <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>  -F 0<span style="color:#f92672">=</span>@$2
+
+</code></pre></div><p>If this script seems a little cryptic to you (It sure seemed to me), don&rsquo;t worry. Explaining the details of it is beyond the scope of this tutorial, but I intend to write an article about making a javascript upload client soon. Meantime, if want you can find more information about the inner workings of it <a href="https://github.com/jaydenseric/graphql-multipart-request-spec">here</a>.</p>
+<p>The script receives the server URI as the first argument and the file path as second. I&rsquo;ll be uploading a very sexy picture of me (which you won&rsquo;t have the pleasure to see) named sexy-me.jpg to my local server running on port 4000 (don&rsquo;t forget to start your server: <code>node src/index.js</code>):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">./bin/upload-avatar.sh localhost:4000 ~/Pictures/sexy-me.jpg
+</code></pre></div><p>And here is the formatted JSON response:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+  <span style="color:#f92672">&#34;data&#34;</span>: {
+    <span style="color:#f92672">&#34;uploadAvatar&#34;</span>: {
+      <span style="color:#f92672">&#34;uri&#34;</span>: <span style="color:#e6db74">&#34;http://about:blank&#34;</span>,
+      <span style="color:#f92672">&#34;filename&#34;</span>: <span style="color:#e6db74">&#34;sexy-me.jpg&#34;</span>,
+      <span style="color:#f92672">&#34;mimetype&#34;</span>: <span style="color:#e6db74">&#34;image/jpeg&#34;</span>,
+      <span style="color:#f92672">&#34;encoding&#34;</span>: <span style="color:#e6db74">&#34;7bit&#34;</span>
+    }
+  }
+}
+
+</code></pre></div><p>TIP: you can use the &lsquo;jq&rsquo; utility to format the JSON response. Install jq and pipe the response to it like <code>./bin/upload-avatar.sh localhost:4000 ~/Pictures/sexy-me.jpg | jq</code>.</p>
+<h2 id="uploading-files-to-amazon-s3">Uploading files to Amazon S3</h2>
+<p>Looking good. Now, let&rsquo;s configure our S3 instance.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-shell" data-lang="shell"><span style="color:#75715e"># .env -- final revision</span>
+
+AWS_ACCESS_KEY_ID<span style="color:#f92672">=</span>
+AWS_ACCESS_KEY_SECRET<span style="color:#f92672">=</span>
+AWS_S3_REGION<span style="color:#f92672">=</span>us-east-2
+AWS_S3_BUCKET<span style="color:#f92672">=</span>acme-evil-labs
+
+</code></pre></div><p>It&rsquo;s up to you to provide values for these variables, of course.</p>
+<p>Our config module will look like this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/config.js -- final revision
+</span><span style="color:#75715e"></span>
+<span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;dotenv&#39;</span>).<span style="color:#a6e22e">config</span>()
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+  <span style="color:#a6e22e">s3</span><span style="color:#f92672">:</span> {
+    <span style="color:#a6e22e">credentials</span><span style="color:#f92672">:</span> {
+      <span style="color:#a6e22e">accessKeyId</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">env</span>.<span style="color:#a6e22e">AWS_ACCESS_KEY_ID</span>,
+      <span style="color:#a6e22e">secretAccessKey</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">env</span>.<span style="color:#a6e22e">AWS_ACCESS_KEY_SECRET</span>,
+    },
+    <span style="color:#a6e22e">region</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">env</span>.<span style="color:#a6e22e">AWS_S3_REGION</span>,
+    <span style="color:#a6e22e">params</span><span style="color:#f92672">:</span> {
+      <span style="color:#a6e22e">ACL</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;public-read&#39;</span>,
+      <span style="color:#a6e22e">Bucket</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">process</span>.<span style="color:#a6e22e">env</span>.<span style="color:#a6e22e">AWS_S3_BUCKET</span>,
+    },
+  },
+  <span style="color:#a6e22e">app</span><span style="color:#f92672">:</span> {
+    <span style="color:#a6e22e">storageDir</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;tmp&#39;</span>,
+  },
+};
+
+</code></pre></div><p>Let&rsquo;s configure our S3 instance:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/s3.js -- final revision
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">AWS</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;aws-sdk&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./config&#39;</span>);
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">AWS</span>.<span style="color:#a6e22e">S3</span>(<span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">s3</span>);
+
+</code></pre></div><p>Now it&rsquo;s time to revisit our resolver and actually make the upload to S3:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/resolvers.js -- second revision
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">extname</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;path&#39;</span>);
+<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">v4</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">uuid</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;uuid&#39;</span>); <span style="color:#75715e">// (A)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#a6e22e">s3</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./s3&#39;</span>); <span style="color:#75715e">// (B)
+</span><span style="color:#75715e"></span>
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+  <span style="color:#a6e22e">Mutation</span><span style="color:#f92672">:</span> {
+    <span style="color:#a6e22e">uploadAvatar</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">async</span> (<span style="color:#a6e22e">_</span>, { <span style="color:#a6e22e">file</span> }) =&gt; {
+      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">createReadStream</span>, <span style="color:#a6e22e">filename</span>, <span style="color:#a6e22e">mimetype</span>, <span style="color:#a6e22e">encoding</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">await</span> <span style="color:#a6e22e">file</span>;
+
+      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">Location</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">await</span> <span style="color:#a6e22e">s3</span>.<span style="color:#a6e22e">upload</span>({ <span style="color:#75715e">// (C)
+</span><span style="color:#75715e"></span>        <span style="color:#a6e22e">Body</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">createReadStream</span>(),               
+        <span style="color:#a6e22e">Key</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">uuid</span>()<span style="color:#e6db74">}${</span><span style="color:#a6e22e">extname</span>(<span style="color:#a6e22e">filename</span>)<span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>,  
+        <span style="color:#a6e22e">ContentType</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">mimetype</span>                   
+      }).<span style="color:#a6e22e">promise</span>();                             
+
+      <span style="color:#66d9ef">return</span> {
+        <span style="color:#a6e22e">filename</span>,
+        <span style="color:#a6e22e">mimetype</span>,
+        <span style="color:#a6e22e">encoding</span>,
+        <span style="color:#a6e22e">uri</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">Location</span>, <span style="color:#75715e">// (D)
+</span><span style="color:#75715e"></span>      }; 
+    },
+  },
+};
+
+</code></pre></div><p>Here is what is happening:</p>
+<ul>
+<li><strong>(A)</strong>: we import the UUID/V4 function (as uuid) to generate our random UUIDs.</li>
+<li><strong>(B)</strong>: we import our configured S3 instance.</li>
+<li><strong>(C)</strong>: we call the <code>upload</code> function passing to it a readable stream object (created by calling <code>createReadStream</code>) as the <code>Body</code> parameter; the random UUID string suffixed with the filename as the <code>Key</code> parameter; and the mimetype as the <code>ContentType</code> parameter. <code>upload</code> is an asynchronous function that expects a callback, but we may return a promise from it by calling the <code>promise</code> method on it (in JavaScript, functions are objects too). When the promise is resolved, we destructure the resolved object to extract the <code>Location</code> property (<code>Location</code> is the URI from where we can download the uploaded file).</li>
+<li><strong>(D)</strong>: we set <code>uri</code> to <code>Location</code>.</li>
+</ul>
+<p>You can find it more info about the <code>upload</code> function <a href="https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#upload-property">here</a>.</p>
+<p>We can now call our shell script again <code>./bin/upload-avatar.sh localhost:4000 ~/Pictures/sexy-me.jpg</code> to see the result:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+  <span style="color:#f92672">&#34;data&#34;</span>: {
+    <span style="color:#f92672">&#34;uploadAvatar&#34;</span>: {
+      <span style="color:#f92672">&#34;uri&#34;</span>: <span style="color:#e6db74">&#34;https://acme-evil-labs.s3.us-east-2.amazonaws.com/c3127c4c-e4f9-4e79-b3d1-08e2cbb7ad5d.jpg&#34;</span>,
+      <span style="color:#f92672">&#34;filename&#34;</span>: <span style="color:#e6db74">&#34;sexy-me.jpg&#34;</span>,
+      <span style="color:#f92672">&#34;mimetype&#34;</span>: <span style="color:#e6db74">&#34;image/jpeg&#34;</span>,
+      <span style="color:#f92672">&#34;encoding&#34;</span>: <span style="color:#e6db74">&#34;7bit&#34;</span>
+    }
+  }
+}
+
+</code></pre></div><p>Notice that the URI now points to the Amazon cloud. We can save that URI in our database and have it served to our front-end application. Additionally, we can copy and paste the URI (not the one of this example, though) in the browser and see the file we just uploaded (if our S3 access policy configuration allows it).</p>
+<p>That sure gets the work done, but if we want to reuse that functionality in other resolvers and present our colleagues with a nice and easy-to-use feature, we must abstract that functionality. To do so, we&rsquo;ll be creating two uploaders with the same interface: one of them will upload files to Amazon S3 (<code>S3Uploader</code>) and the other will save the files in the local hard drive (<code>FilesystemUploader</code>). There are few use cases for uploading files directly to the server drive nowadays, but it might be handy at some point during development. Then we&rsquo;ll see that we can can exchange one implementation for another seamlessly.</p>
+<h2 id="building-abstractions">Building abstractions</h2>
+<p>Let&rsquo;s start with the <code>S3Uploader</code> class:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/lib/gql-uploaders.js -- first revision
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;path&#39;</span>);
+<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">v4</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">uuid</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;uuid&#39;</span>);
+
+<span style="color:#66d9ef">function</span> <span style="color:#a6e22e">uuidFilenameTransform</span>(<span style="color:#a6e22e">filename</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>) { <span style="color:#75715e">// (A)
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fileExtension</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">extname</span>(<span style="color:#a6e22e">filename</span>);
+
+  <span style="color:#66d9ef">return</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">uuid</span>()<span style="color:#e6db74">}${</span><span style="color:#a6e22e">fileExtension</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>;
+}
+
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">S3Uploader</span> {
+  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">s3</span>, <span style="color:#a6e22e">config</span>) {
+    <span style="color:#66d9ef">const</span> {
+      <span style="color:#a6e22e">baseKey</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>,
+      <span style="color:#a6e22e">uploadParams</span> <span style="color:#f92672">=</span> {},                           
+      <span style="color:#a6e22e">concurrencyOptions</span> <span style="color:#f92672">=</span> {},
+      <span style="color:#a6e22e">filenameTransform</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">uuidFilenameTransform</span>, <span style="color:#75715e">// (A)
+</span><span style="color:#75715e"></span>    } <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span>;
+
+    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_s3</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">s3</span>;
+    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_baseKey</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">baseKey</span>.<span style="color:#a6e22e">replace</span>(<span style="color:#e6db74">&#39;/$&#39;</span>, <span style="color:#e6db74">&#39;&#39;</span>); <span style="color:#75715e">// (B)
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_filenameTransform</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">filenameTransform</span>; 
+    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_uploadParams</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">uploadParams</span>;
+    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_concurrencyOptions</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">concurrencyOptions</span>;
+  }
+
+  <span style="color:#a6e22e">async</span> <span style="color:#a6e22e">upload</span>(<span style="color:#a6e22e">stream</span>, { <span style="color:#a6e22e">filename</span>, <span style="color:#a6e22e">mimetype</span> }) {
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">transformedFilename</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_filenameTransform</span>(<span style="color:#a6e22e">filename</span>); <span style="color:#75715e">// (A)
+</span><span style="color:#75715e"></span>
+    <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">Location</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">await</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_s3</span>
+      .<span style="color:#a6e22e">upload</span>(
+        {
+          ...<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_uploadParams</span>, <span style="color:#75715e">// (C)
+</span><span style="color:#75715e"></span>          <span style="color:#a6e22e">Body</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">stream</span>,
+          <span style="color:#a6e22e">Key</span><span style="color:#f92672">:</span> <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span><span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_baseKey</span><span style="color:#e6db74">}</span><span style="color:#e6db74">/</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">transformedFilename</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>,
+          <span style="color:#a6e22e">ContentType</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">mimetype</span>,
+        },
+        <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_concurrencyOptions</span>
+      )
+      .<span style="color:#a6e22e">promise</span>();
+
+    <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">Location</span>; <span style="color:#75715e">// (D)
+</span><span style="color:#75715e"></span>  }
+}
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">S3Uploader</span>, <span style="color:#a6e22e">uuidFilenameTransform</span> };
+
+</code></pre></div><ul>
+<li><code>S3Uploader</code> constructor receives a S3 instance and the following parameters:
+<ul>
+<li><code>baseKey</code> - this is the key prefix for every file uploaded. Note that if there is a trailing &lsquo;/&rsquo;, it will be erased <strong>(B)</strong>;</li>
+<li><code>uploadParams</code> - the default <code>params</code> object passed to S3 upload function. These parameters will me mixed with the more specific one on the upload method <strong>(C)</strong>.</li>
+<li><code>concurrencyOptions</code> - these are concurrency options accepted by the underlying S3 <code>upload</code> function;</li>
+<li><code>filenameTransform</code> - a customizable transform function for the filename. It defaults to a function that concatenates a random uuid and the file extension <strong>(A)</strong>.</li>
+</ul>
+</li>
+<li>We return the URI of the file when the promise resolves <strong>(D)</strong>.</li>
+</ul>
+<p>Before we see it in action, let&rsquo;s create a configured instance of it:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/uploaders.js --- first revision
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">s3</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./s3&#39;</span>);
+<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">S3Uploader</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./lib/gql-uploaders&#39;</span>);
+
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">avatarUploader</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">S3Uploader</span>(<span style="color:#a6e22e">s3</span>, {
+  <span style="color:#a6e22e">baseKey</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;users/avatars&#39;</span>,
+  <span style="color:#a6e22e">uploadParams</span><span style="color:#f92672">:</span> {
+    <span style="color:#a6e22e">CacheControl</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;max-age:31536000&#39;</span>,
+    <span style="color:#a6e22e">ContentDisposition</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;inline&#39;</span>,
+  },
+  <span style="color:#a6e22e">filenameTransform</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">filename</span> =&gt; <span style="color:#a6e22e">filename</span>,
+});
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">avatarUploader</span> };
+
+</code></pre></div><p>Okay, here we have it. A few upload parameters (<code>CacheControl</code> and <code>ContentDispotision</code>) were added just to exercise the possibilities. These  will be used every time we call the <code>upload</code> method on the <code>avatarUploader</code> object. We defined a <code>filenameTransform</code> function that just takes the filename and returns it untouched, and set <code>baseKey</code> to <code>'users/avatars'</code>, so the files uploaded with <code>avatarUplaoder</code> will be stored on S3 with a key similar to <code>users/avatars/sexy-me.jpg</code>.</p>
+<p>Now, the beauty of it: let&rsquo;s see how clean and concise our resolver gets:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/resolvers.js -- final revision
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">avatarUploader</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./uploaders&#39;</span>);
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+  <span style="color:#a6e22e">Mutation</span><span style="color:#f92672">:</span> {
+    <span style="color:#a6e22e">uploadAvatar</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">async</span> (<span style="color:#a6e22e">_</span>, { <span style="color:#a6e22e">file</span> }) =&gt; {
+      <span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">createReadStream</span>, <span style="color:#a6e22e">filename</span>, <span style="color:#a6e22e">mimetype</span>, <span style="color:#a6e22e">encoding</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">await</span> <span style="color:#a6e22e">file</span>;
+
+      <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">uri</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">await</span> <span style="color:#a6e22e">avatarUploader</span>.<span style="color:#a6e22e">upload</span>(<span style="color:#a6e22e">createReadStream</span>(), {
+        <span style="color:#a6e22e">filename</span>,
+        <span style="color:#a6e22e">mimetype</span>,
+      });
+
+      <span style="color:#66d9ef">return</span> {
+        <span style="color:#a6e22e">filename</span>,
+        <span style="color:#a6e22e">mimetype</span>,
+        <span style="color:#a6e22e">encoding</span>,
+        <span style="color:#a6e22e">uri</span>,
+      };
+    },
+  },
+};
+
+</code></pre></div><p>And that is that for the resolver, just that. Now we&rsquo;ll implement our <code>FilesystemUploader</code> and we&rsquo;ll realize we won&rsquo;t even need to touch the resolver code when we switch implementations.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/lib/gql-uploaders.js -- final revision (partial file)
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fs</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;fs&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">path</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;path&#39;</span>);
+<span style="color:#66d9ef">const</span> { <span style="color:#a6e22e">v4</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">uuid</span> } <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;uuid&#39;</span>);
+
+<span style="color:#75715e">// `uuidFilenameTransform` function definition....
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// `S3Uploader` class definition...
+</span><span style="color:#75715e"></span>  
+<span style="color:#66d9ef">class</span> <span style="color:#a6e22e">FilesystemUploader</span> {
+  <span style="color:#a6e22e">constructor</span>(<span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> {}) {
+    <span style="color:#66d9ef">const</span> {
+      <span style="color:#a6e22e">dir</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;&#39;</span>,
+      <span style="color:#a6e22e">filenameTransform</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">uuidFilenameTransform</span>
+    } <span style="color:#f92672">=</span> <span style="color:#a6e22e">config</span>;
+
+    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_dir</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">normalize</span>(<span style="color:#a6e22e">dir</span>);
+    <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_filenameTransform</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">filenameTransform</span>;
+  }
+
+  <span style="color:#a6e22e">upload</span>(<span style="color:#a6e22e">stream</span>, { <span style="color:#a6e22e">filename</span> }) {
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">transformedFilename</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_filenameTransform</span>(<span style="color:#a6e22e">filename</span>);
+
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fileLocation</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">path</span>.<span style="color:#a6e22e">resolve</span>(<span style="color:#66d9ef">this</span>.<span style="color:#a6e22e">_dir</span>, <span style="color:#a6e22e">transformedFilename</span>);
+    <span style="color:#66d9ef">const</span> <span style="color:#a6e22e">writeStream</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">stream</span>.<span style="color:#a6e22e">pipe</span>(<span style="color:#a6e22e">fs</span>.<span style="color:#a6e22e">createWriteStream</span>(<span style="color:#a6e22e">fileLocation</span>));
+
+    <span style="color:#66d9ef">return</span> <span style="color:#66d9ef">new</span> Promise((<span style="color:#a6e22e">resolve</span>, <span style="color:#a6e22e">reject</span>) =&gt; {
+      <span style="color:#a6e22e">writeStream</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#39;finish&#39;</span>, <span style="color:#a6e22e">resolve</span>);
+      <span style="color:#a6e22e">writeStream</span>.<span style="color:#a6e22e">on</span>(<span style="color:#e6db74">&#39;error&#39;</span>, <span style="color:#a6e22e">reject</span>);
+    }).<span style="color:#a6e22e">then</span>(() =&gt; <span style="color:#e6db74">`file://</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">fileLocation</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>);
+  }
+}
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> {
+  <span style="color:#a6e22e">S3Uploader</span>,
+  <span style="color:#a6e22e">FilesystemUploader</span>,
+  <span style="color:#a6e22e">uuidFilenameTransform</span>
+};
+
+</code></pre></div><ul>
+<li>The constructor takes the filesystem path to the destination directory, <code>dir</code>.</li>
+<li><code>filenameTransform</code> parameter is similar to the one of <code>S3Uploader</code>.</li>
+<li>The <code>upload</code> method creates a write stream to record the file on the <code>dir</code> directory. It then pipes the read stream to the write stream. <code>upload</code> returns a a promise that listens to the write stream events and resolves to the file URI on the drive if the write operation is successful.</li>
+</ul>
+<p>Let&rsquo;s turn ourselves back to the src/uploaders.js file and switch the implementations. We&rsquo;ll be simply replacing the reference of the exported name with our new implementation, but you can do more sophisticated stuff like implementing a <em>Strategy</em> pattern if you need to switch between them conditionally.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-javascript" data-lang="javascript"><span style="color:#75715e">// src/uploaders.js -- final revision
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">s3</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./s3&#39;</span>);
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">config</span> <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./config&#39;</span>);
+<span style="color:#66d9ef">const</span> {
+  <span style="color:#a6e22e">S3Uploader</span>,
+  <span style="color:#a6e22e">FilesystemUploader</span>,
+} <span style="color:#f92672">=</span> <span style="color:#a6e22e">require</span>(<span style="color:#e6db74">&#39;./lib/gql-uploaders&#39;</span>);
+
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">s3AvatarUploader</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">S3Uploader</span>(<span style="color:#a6e22e">s3</span>, { <span style="color:#75715e">// (A)
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">baseKey</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;users/avatars&#39;</span>,
+  <span style="color:#a6e22e">uploadParams</span><span style="color:#f92672">:</span> {
+    <span style="color:#a6e22e">CacheControl</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;max-age:31536000&#39;</span>,
+    <span style="color:#a6e22e">ContentDisposition</span><span style="color:#f92672">:</span> <span style="color:#e6db74">&#39;inline&#39;</span>,
+  },
+});
+
+<span style="color:#66d9ef">const</span> <span style="color:#a6e22e">fsAvatarUploader</span> <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> <span style="color:#a6e22e">FilesystemUploader</span>({ <span style="color:#75715e">// (A)
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">dir</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">config</span>.<span style="color:#a6e22e">app</span>.<span style="color:#a6e22e">storageDir</span>, <span style="color:#75715e">// (B)
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">filenameTransform</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">filename</span> =&gt; <span style="color:#e6db74">`</span><span style="color:#e6db74">${</span>Date.<span style="color:#a6e22e">now</span>()<span style="color:#e6db74">}</span><span style="color:#e6db74">_</span><span style="color:#e6db74">${</span><span style="color:#a6e22e">filename</span><span style="color:#e6db74">}</span><span style="color:#e6db74">`</span>, <span style="color:#75715e">// (C)
+</span><span style="color:#75715e"></span>});
+
+<span style="color:#a6e22e">module</span>.<span style="color:#a6e22e">exports</span> <span style="color:#f92672">=</span> { <span style="color:#a6e22e">avatarUploader</span><span style="color:#f92672">:</span> <span style="color:#a6e22e">fsAvatarUploader</span> }; <span style="color:#75715e">// (A)
+</span><span style="color:#75715e"></span>
+</code></pre></div><ul>
+<li><strong>(A)</strong>: now we have two implementations, <code>s3AvatarUploader</code> and <code>fsAvatarUploader</code>. This time we&rsquo;ll export the <code>fsAvatarUploader</code> as <code>avatarUploader</code>.</li>
+<li><strong>(B)</strong>: I&rsquo;m referencing the tmp directory that I created on the project root folder.</li>
+<li><strong>(C)</strong>: We customize <code>filenameTransform</code> again, just to show it in action one more time. This implementation will prepend the filenames with the current timestamp. Note that I also omitted this parameter on <code>s3AvatarUploader</code>, reseting it to its default algorithm (random UUID filenames);</li>
+</ul>
+<p>So, enough talking! Let&rsquo;s see what we got!</p>
+<p>I ran <code>./bin/upload-avatar.sh http://localhost:4000 ~/Pictures/sexy-me.jpg</code> again and got:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-json" data-lang="json">{
+  <span style="color:#f92672">&#34;data&#34;</span>: {
+    <span style="color:#f92672">&#34;uploadAvatar&#34;</span>: {
+      <span style="color:#f92672">&#34;uri&#34;</span>: <span style="color:#e6db74">&#34;file:///home/fhpriamo/blogpost-graphql-uploads/tmp/1586733824916_sexy-me.jpg&#34;</span>,
+      <span style="color:#f92672">&#34;filename&#34;</span>: <span style="color:#e6db74">&#34;sexy-me.jpg&#34;</span>,
+      <span style="color:#f92672">&#34;mimetype&#34;</span>: <span style="color:#e6db74">&#34;image/jpeg&#34;</span>,
+      <span style="color:#f92672">&#34;encoding&#34;</span>: <span style="color:#e6db74">&#34;7bit&#34;</span>
+    }
+  }
+}
+
+</code></pre></div><p>Nice! And we didn&rsquo;t even have to rewrite the resolver!</p>
+<h2 id="git-repository">Git repository</h2>
+<p>You can check out the full code <a href="https://github.com/fhpriamo/blogpost-graphql-uploads">here</a>. Clone it, modify it, play with it, extend it&hellip; it&rsquo;s you call.</p>
+<p><strong>NOTE</strong>: If you cloned the repo and want to run it, don&rsquo;t forget to write yourself a .env file (You can refer to .env.example if you need a template);</p>
+<h2 id="related-articles">Related articles:</h2>
+<ul>
+<li><a href="https://blog.apollographql.com/%EF%B8%8F-graphql-file-uploads-with-react-hooks-typescript-amazon-s3-tutorial-ef39d21066a2">https://blog.apollographql.com/%EF%B8%8F-graphql-file-uploads-with-react-hooks-typescript-amazon-s3-tutorial-ef39d21066a2</a></li>
+</ul>
+
+		</div>
+
+		<div class="post-tags">
+			
+				
+					<nav class="nav tags">
+							<ul class="flat">
+								
+								<li><a href="/blog/tags/graphql">GraphQL</a></li>
+								
+								<li><a href="/blog/tags/apollo">Apollo</a></li>
+								
+								<li><a href="/blog/tags/node">Node</a></li>
+								
+								<li><a href="/blog/tags/aws">AWS</a></li>
+								
+								<li><a href="/blog/tags/s3">S3</a></li>
+								
+							</ul>
+					</nav>
+				
+			
+		</div>
+		</div>
+	<div class="footer wrapper">
+	<nav class="nav">
+		<div> © Copyright 2020 Fábio H. Priamo |  <a href="https://github.com/vividvilla/ezhil">Ezhil theme</a> | Built with <a href="https://gohugo.io">Hugo</a></div>
+	</nav>
+</div>
+
+
+
+<script type="application/javascript">
+var doNotTrack = false;
+if (!doNotTrack) {
+	window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+	ga('create', 'UA-123-45', 'auto');
+	
+	ga('send', 'pageview');
+}
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+
+<script>feather.replace()</script>
+</body>
+</html>

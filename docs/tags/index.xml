@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on Ugly code uglier coder</title>
+    <link>https://fhpriamo.github.io/blog/tags/</link>
+    <description>Recent content in Tags on Ugly code uglier coder</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© Copyright 2020 Fábio H. Priamo</copyright>
+    <lastBuildDate>Mon, 03 Aug 2020 03:05:09 -0300</lastBuildDate>
+    
+	<atom:link href="https://fhpriamo.github.io/blog/tags/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Apollo</title>
+      <link>https://fhpriamo.github.io/blog/tags/apollo/</link>
+      <pubDate>Mon, 03 Aug 2020 03:05:09 -0300</pubDate>
+      
+      <guid>https://fhpriamo.github.io/blog/tags/apollo/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>AWS</title>
+      <link>https://fhpriamo.github.io/blog/tags/aws/</link>
+      <pubDate>Mon, 03 Aug 2020 03:05:09 -0300</pubDate>
+      
+      <guid>https://fhpriamo.github.io/blog/tags/aws/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>GraphQL</title>
+      <link>https://fhpriamo.github.io/blog/tags/graphql/</link>
+      <pubDate>Mon, 03 Aug 2020 03:05:09 -0300</pubDate>
+      
+      <guid>https://fhpriamo.github.io/blog/tags/graphql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Node</title>
+      <link>https://fhpriamo.github.io/blog/tags/node/</link>
+      <pubDate>Mon, 03 Aug 2020 03:05:09 -0300</pubDate>
+      
+      <guid>https://fhpriamo.github.io/blog/tags/node/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>S3</title>
+      <link>https://fhpriamo.github.io/blog/tags/s3/</link>
+      <pubDate>Mon, 03 Aug 2020 03:05:09 -0300</pubDate>
+      
+      <guid>https://fhpriamo.github.io/blog/tags/s3/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>

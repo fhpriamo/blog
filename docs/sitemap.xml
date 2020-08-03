@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/tags/apollo/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/tags/aws/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/tags/graphql/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/tags/node/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/posts/painless-graphql-file-uploads-with-apollo-server-to-amazon-s3-and-local-filesystem/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/posts/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/tags/s3/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/tags/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/</loc>
+    <lastmod>2020-08-03T03:05:09-03:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://fhpriamo.github.io/blog/about/</loc>
+    <lastmod>2020-08-02T20:33:19-03:00</lastmod>
+  </url>
+  
+</urlset>
