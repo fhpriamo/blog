@@ -5,8 +5,49 @@ theme = "ezhil"
 publishDir = "docs"
 copyright = "© Copyright 2020 Fábio H. Priamo"
 
+
+
+
+
 # Enable syntax highlighting.
-pygmentsstyle = "monokai"
+#pygmentsstyle = "abap"
+#pygmentsstyle = "algol"
+#pygmentsstyle = "algol_nu"
+#pygmentsstyle = "api"
+#pygmentsstyle = "arduino"
+#pygmentsstyle = "autumn"
+#pygmentsstyle = "borland"
+#pygmentsstyle = "bw"
+#pygmentsstyle = "colorful"
+#pygmentsstyle = "dracula"
+#pygmentsstyle = "emacs"
+#pygmentsstyle = "friendly"
+#pygmentsstyle = "fruity" #BAAD
+#pygmentsstyle = "github"
+#pygmentsstyle = "igor"
+#pygmentsstyle = "lovelace"
+#pygmentsstyle = "manni"
+#pygmentsstyle = "monokai"
+#pygmentsstyle = "monokailight"
+#pygmentsstyle = "murphy" # bad
+pygmentsstyle = "native" # good
+#pygmentsstyle = "paraiso-dark"
+#pygmentsstyle = "paraiso-light"
+#pygmentsstyle = "pastie"
+#pygmentsstyle = "perldoc"
+#pygmentsstyle = "pygments"
+#pygmentsstyle = "rainbow_dash"
+#pygmentsstyle = "rrt"
+#pygmentsstyle = "solarized-dark"
+#pygmentsstyle = "solarized-dark256"
+#pygmentsstyle = "solarized-light"
+#pygmentsstyle = "swapoff"
+#pygmentsstyle = "tango"
+#pygmentsstyle = "trac"
+#pygmentsstyle = "vim"
+#pygmentsstyle = "vs"
+#pygmentsstyle = "xcode"
+
 pygmentscodefences = true
 pygmentscodefencesguesssyntax = true
 
@@ -58,7 +99,7 @@ url = "/"
 weight = 1
 
 [[menu.main]]
-name = "All posts"
+name = "All Posts"
 url = "/posts"
 weight = 2
 
